@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BURN CARD v0.21</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <div id="root"></div>
+    <script>
+        window.onerror = function(message, source, lineno, colno, error) {
+            document.body.innerHTML = `<div style="color:#ef4444;background:#0f172a;padding:20px;font-family:monospace;">CRASH: ${message} <br> ${source}:${lineno}</div>`;
+        };
+    </script>
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect, useMemo } from 'https://esm.sh/react@18.2.0';
+        import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
+        import { 
+            Terminal, BookOpen, Cpu, Zap, Layout, Menu, X, ChevronRight, ChevronDown,
+            FileText, Folder, Shield, Image as ImageIcon, Wifi, Layers, User, Hexagon, 
+            Activity, Package, Settings, CheckCircle, Globe, MapPin, Flag, Users, Landmark
+        } from 'https://esm.sh/lucide-react@0.292.0';
+
+        import { DATABASE_REGISTRY } from './data/registry.js';
+        import { THEMES, SHAPES } from './theme.js';
+
+        /* --- PERSISTENCE --- */
+        function useStickyState(defaultValue, key) {
+            const [value, setValue] = useState(() => {
+                try {
+                    const stickyValue = window.localStorage.getItem(key);
+                    return stickyValue !== null ? JSON.parse(stickyValue) : defaultValue;
+                } catch (error) { return defaultValue; }
+            });
+            useEffect(() => {
+                try { window.localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+            }, [key, value]);
+            return [value, setValue];
+        }
+
+        /* --- VISUAL COMPONENTS --- */
+        const CyberCard = ({ children, theme, className = "", style = {} }) => (
+            <div className={`relative ${theme.colors.bgPanel} border-l-2 border-r-2 ${theme.colors.borderDim} p-6 ${className}`} style={{ clipPath: SHAPES?.bevelPrimary, ...style }}>
+                <div className={`absolute top-0 left-0 w-full h-[2px] opacity-30 ${theme.colors.primaryBg}`}></div>
+                <div className={`absolute bottom-0 left-0 w-full h-[2px] opacity-30 ${theme.colors.primaryBg}`}></div>
+                {children}
+            </div>
+        );
+
+        /* --- WIKI INFOBOX --- */
+        const InfoBox = ({ data, theme }) => {
+            if (!data) return null;
+            return (
+                <div className={`mb-6 lg:ml-6 lg:w-72 lg:float-right bg-black/20 border ${theme.colors.borderDim} p-1 text-sm font-mono`}>
+                    <div className={`${theme.colors.bgSurface} p-2 text-center font-bold ${theme.colors.textHead} border-b ${theme.colors.borderDim}`}>
+                        {data.title}
+                    </div>
+                    {data.image && <img src={data.image} alt="Subject" className="w-full h-auto border-b border-slate-700/50" />}
+                    <div className="p-2 space-y-2">
+                        {data.data.map((row, i) => (
+                            <div key={i} className="flex justify-between border-b border-dashed border-slate-700/50 pb-1 last:border-0">
+                                <span className={`${theme.colors.textDim} text-xs uppercase`}>{row.label}</span>
+                                <span className={`${theme.colors.textBody} text-right`}>{row.value}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        /* --- TOC GENERATOR --- */
+        const TableOfContents = ({ headers, theme }) => {
+            if (!headers || headers.length === 0) return null;
+            return (
+                <div className={`hidden xl:block w-64 shrink-0 pl-6 sticky top-6`}>
+                    <div className={`border-l-2 ${theme.colors.borderDim} pl-4 py-2`}>
+                        <h4 className={`text-xs font-bold ${theme.colors.textDim} mb-3 uppercase tracking-wider`}>Contents</h4>
+                        <ul className="space-y-2 text-xs font-mono">
+                            {headers.map((h, i) => (
+                                <li key={i} style={{ paddingLeft: `${(h.level - 1) * 8}px` }}>
+                                    <a href={`#${h.id}`} className={`${theme.colors.textBody} hover:${theme.colors.primary} transition-colors block truncate`}>
+                                        {h.text}
+                                    </a>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+            );
+        };
+
+        /* --- SETTINGS VIEW --- */
+        const SettingsView = ({ currentThemeId, setThemeId, theme }) => (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div>
+                    <h2 className={`text-2xl font-bold font-mono mb-6 ${theme.colors.primary}`}>SYSTEM CONFIGURATION</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {Object.entries(THEMES).map(([key, t]) => (
+                            <button key={key} onClick={() => setThemeId(key)} className={`relative group flex items-center justify-between p-4 rounded border-2 transition-all duration-200 ${currentThemeId === key ? `${t.colors.borderBright} ${t.colors.bgSurface}` : `border-transparent ${theme.colors.bgSurface} hover:${theme.colors.borderDim}`}`} style={{ clipPath: SHAPES?.bevelBtn }}>
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-6 h-6 ${t.colors.bgApp} border ${t.colors.borderBright} flex items-center justify-center`}><div className={`w-3 h-3 ${t.colors.primaryBg} rounded-full`}></div></div>
+                                    <span className={`font-mono text-sm ${currentThemeId === key ? t.colors.textHead : theme.colors.textDim}`}>{t.label}</span>
+                                </div>
+                                {currentThemeId === key && <CheckCircle size={16} className={t.colors.primary} />}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+
+        /* --- MAIN APP --- */
+        function App() {
+            const [currentThemeId, setCurrentThemeId] = useStickyState('neon_city', 'burn_card_theme_v2');
+            const theme = (THEMES && THEMES[currentThemeId]) ? THEMES[currentThemeId] : THEMES['neon_city'];
+            const [db, setDb] = useState(DATABASE_REGISTRY);
+            const [activeId, setActiveId] = useState("root_home");
+            const [showSidebar, setShowSidebar] = useState(true);
+            const [viewMode, setViewMode] = useState("content");
+
+            useEffect(() => { if (window.innerWidth < 768) setShowSidebar(false); }, []);
+            if (!theme) return <div className="text-red-500 p-10">THEME ERROR</div>;
+
+            const toggleCollapse = (id, e) => {
+                e.stopPropagation();
+                setDb(prev => ({ ...prev, [id]: { ...prev[id], collapsed: !prev[id].collapsed } }));
+            };
+
+            // HEADER PARSER FOR TOC
+            const activeContent = db[activeId];
+            const headers = useMemo(() => {
+                if (!activeContent || !activeContent.content) return [];
+                const lines = activeContent.content.split('\n');
+                const extracted = [];
+                lines.forEach(line => {
+                    const match = line.match(/^(#{1,3})\s+(.+)/);
+                    if (match) {
+                        const level = match[1].length;
+                        const text = match[2].trim();
+                        const id = text.toLowerCase().replace(/[^\w]+/g, '-');
+                        extracted.push({ level, text, id });
+                    }
+                });
+                return extracted;
+            }, [activeContent]);
+
+            const parseInline = (text) => {
+                if (!text) return text;
+                return text.split(/(\*\*.*?\*\*|\*.*?\*|`.*?`)/g).map((part, j) => {
+                    if (part.startsWith('**') && part.endsWith('**')) return <strong key={j} className={`${theme.colors.textHead} font-bold tracking-wide`}>{part.slice(2, -2)}</strong>;
+                    if (part.startsWith('*') && part.endsWith('*')) return <em key={j} className={`${theme.colors.highlight} not-italic font-bold`}>{part.slice(1, -1)}</em>;
+                    if (part.startsWith('`') && part.endsWith('`')) return <code key={j} className={`bg-slate-950 ${theme.colors.secondary} px-1.5 py-0.5 rounded-sm font-mono text-xs border ${theme.colors.borderDim}`}>{part.slice(1, -1)}</code>;
+                    return part;
+                });
+            };
+
+            const renderMarkdown = (text) => {
+                if (!text) return null;
+                const lines = text.split('\n');
+                const blocks = [];
+                let tableBuffer = [];
+
+                lines.forEach((line) => {
+                    if (line.trim().startsWith('|')) { tableBuffer.push(line); } 
+                    else { if (tableBuffer.length > 0) { blocks.push({ type: 'table', content: tableBuffer }); tableBuffer = []; } blocks.push({ type: 'line', content: line }); }
+                });
+                if (tableBuffer.length > 0) blocks.push({ type: 'table', content: tableBuffer });
+
+                return blocks.map((block, i) => {
+                    if (block.type === 'table') {
+                        const headerRow = block.content[0];
+                        const bodyRows = block.content.slice(1);
+                        return (
+                            <div key={i} className={`my-8 relative overflow-hidden ${theme.colors.bgSurface}`} style={{ clipPath: SHAPES.bevelAlt }}>
+                                <div className={`absolute inset-0 border ${theme.colors.borderDim} pointer-events-none`}></div>
+                                <div className="overflow-x-auto p-[1px]">
+                                    <table className="w-full text-left text-sm">
+                                        <thead className={`${theme.colors.bgPanel} ${theme.colors.primary} uppercase font-mono text-[10px] md:text-xs tracking-wider`}>
+                                            <tr>{headerRow.split('|').filter(c => c.trim()).map((h, hIdx) => <th key={hIdx} className={`px-6 py-4 border-b ${theme.colors.borderDim} font-bold`}>{parseInline(h.trim())}</th>)}</tr>
+                                        </thead>
+                                        <tbody className={`divide-y ${theme.colors.borderDim}`}>
+                                            {bodyRows.map((row, rIdx) => {
+                                                if (row.trim().match(/^\|\s*[-:]+\s*\|/)) return null;
+                                                return <tr key={rIdx} className={`hover:${theme.colors.bgApp} transition-colors`}>{row.split('|').filter(c => c.trim()).map((cell, cIdx) => <td key={cIdx} className={`px-6 py-3 font-mono text-xs md:text-sm ${theme.colors.textBody}`}>{parseInline(cell.trim())}</td>)}</tr>;
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        );
+                    }
+                    const line = block.content;
+                    
+                    // Header Rendering with IDs for TOC
+                    const headerMatch = line.match(/^(#{1,3})\s+(.+)/);
+                    if (headerMatch) {
+                        const level = headerMatch[1].length;
+                        const text = headerMatch[2];
+                        const id = text.toLowerCase().replace(/[^\w]+/g, '-');
+                        
+                        if (level === 1) return <h1 id={id} key={i} className={`text-3xl md:text-5xl font-black ${theme.colors.textHead} mt-12 mb-8 font-mono uppercase tracking-tighter border-b-2 ${theme.colors.borderDim} pb-4 block scroll-mt-24`}>{text}</h1>;
+                        if (level === 2) return <h2 id={id} key={i} className={`text-xl md:text-2xl font-bold ${theme.colors.secondary} mt-10 mb-4 font-mono uppercase tracking-wide flex items-center gap-2 scroll-mt-24`}><Hexagon size={16} className="fill-current"/> {text}</h2>;
+                        if (level === 3) return <h3 id={id} key={i} className={`text-lg font-bold ${theme.colors.primary} mt-6 mb-2 tracking-wide scroll-mt-24`}>{text}</h3>;
+                    }
+
+                    if (line.startsWith('> ')) return <div key={i} className={`relative border-l-4 ${theme.colors.borderBright} ${theme.colors.bgSurface} p-6 my-8 ${theme.colors.textBody} italic rounded-r-lg font-serif text-lg leading-relaxed`}>{parseInline(line.replace('> ', ''))}</div>;
+                    if (line.startsWith('* ') || line.startsWith('- ')) return <li key={i} className={`ml-4 ${theme.colors.textBody} list-disc marker:${theme.colors.secondary.split(' ')[0]} pl-2 mb-2 text-sm md:text-base leading-relaxed`}>{parseInline(line.replace(/^[*-] /, ''))}</li>;
+                    if (line.trim() === '') return <div key={i} className="h-4"></div>;
+                    return <p key={i} className={`mb-4 ${theme.colors.textBody} leading-relaxed text-sm md:text-base max-w-prose`}>{parseInline(line)}</p>;
+                });
+            };
+
+            const renderSidebarItem = (item, depth = 0) => {
+                const children = Object.values(db).filter(i => i.parentId === item.id);
+                const hasChildren = children.length > 0;
+                
+                const getIcon = (name) => {
+                    const icons = { Terminal, BookOpen, Cpu, Zap, Layout, FileText, Folder, Shield, Wifi, Layers, User, Activity, Package, Hexagon, Globe, MapPin, Flag, Users, Landmark };
+                    return icons[name] || Terminal;
+                };
+                const TheIcon = getIcon(item.icon);
+
+                return (
+                    <div key={item.id} className="select-none animate-in slide-in-from-left-2 duration-300">
+                        <div 
+                            className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all border-l-2 group relative overflow-hidden ${activeId === item.id && viewMode === 'content' ? `${theme.colors.bgSurface} ${theme.colors.borderBright} ${theme.colors.primary}` : `border-transparent ${theme.colors.textDim} hover:${theme.colors.bgSurface} hover:${theme.colors.highlight} hover:${theme.colors.borderDim}`}`}
+                            style={{ paddingLeft: `${depth * 16 + 16}px` }}
+                            onClick={() => { 
+                                if (item.content) { setActiveId(item.id); setViewMode('content'); if (window.innerWidth < 768) setShowSidebar(false); } 
+                                else { toggleCollapse(item.id, { stopPropagation: () => {} }); }
+                            }}
+                        >
+                            {hasChildren ? <button onClick={(e) => toggleCollapse(item.id, e)} className="z-10 p-1 -ml-1 hover:text-white rounded active:scale-95 transition-transform">{item.collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}</button> : <span className="w-3.5" />}
+                            <TheIcon size={16} className={`z-10 transition-colors ${activeId === item.id && viewMode === 'content' ? theme.colors.primary : ''}`} />
+                            <span className="z-10 text-sm font-mono tracking-tight truncate">{item.title}</span>
+                        </div>
+                        {!item.collapsed && children.map(child => renderSidebarItem(child, depth + 1))}
+                    </div>
+                );
+            };
+
+            return (
+                <div className={`flex h-screen w-full ${theme.colors.bgApp} transition-colors duration-500 text-slate-200 overflow-hidden font-sans selection:${theme.colors.primaryBg} selection:text-white relative`}>
+                    <div className="absolute inset-0 scanlines z-50 opacity-20 pointer-events-none"></div>
+                    {showSidebar && <div className="fixed inset-0 bg-black/80 z-30 md:hidden backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowSidebar(false)} />}
+                    
+                    <div className={`fixed inset-y-0 left-0 z-40 w-72 ${theme.colors.bgPanel} border-r ${theme.colors.borderDim} flex flex-col transform transition-transform duration-300 shadow-xl ${showSidebar ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0`}>
+                        <div className={`p-8 border-b ${theme.colors.borderDim} ${theme.colors.bgApp} relative overflow-hidden`}>
+                            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
+                            <h1 className="text-4xl font-black font-mono tracking-tighter relative z-10 italic leading-none">
+                                <span className={`${theme.colors.primary} block drop-shadow-md`}>BURN</span>
+                                <span className={`${theme.colors.secondary} block drop-shadow-md`}>CARD</span>
+                            </h1>
+                            <div className={`flex items-center gap-2 mt-4 text-[10px] font-mono ${theme.colors.textDim}`}>
+                                <span className={`w-1.5 h-1.5 rounded-none ${theme.colors.primaryBg} animate-ping`}></span>
+                                v0.21 // WIKI
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto py-4 scrollbar-thin">
+                            {Object.values(db).filter(i => !i.parentId).map(item => renderSidebarItem(item))}
+                        </div>
+                        <div className={`p-4 border-t ${theme.colors.borderDim} ${theme.colors.bgApp}`}>
+                            <button onClick={() => { setViewMode('settings'); if(window.innerWidth < 768) setShowSidebar(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded border transition-all duration-200 ${viewMode === 'settings' ? `${theme.colors.borderBright} ${theme.colors.primary} ${theme.colors.bgSurface}` : `border-transparent ${theme.colors.textDim} hover:${theme.colors.bgSurface} hover:${theme.colors.highlight}`}`}>
+                                <Settings size={16} /><span className="font-mono text-xs tracking-wider">SYSTEM SETTINGS</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <main className={`flex-1 flex flex-col min-w-0 ${theme.colors.bgApp} relative`}>
+                        <div className={`h-16 border-b ${theme.colors.borderDim} flex items-center justify-between px-6 ${theme.colors.bgPanel} backdrop-blur shrink-0 sticky top-0 z-20`}>
+                            <div className="flex items-center gap-4">
+                                <button className={`md:hidden ${theme.colors.primary} p-2 border ${theme.colors.borderDim} rounded ${theme.colors.bgSurface}`} onClick={() => setShowSidebar(!showSidebar)}><Menu size={20}/></button>
+                                <div className="flex flex-col"><span className={`${theme.colors.primary} font-mono text-[10px] hidden sm:inline leading-none mb-1 tracking-widest uppercase`}>{viewMode === 'settings' ? "CONFIG /" : `Directory / ${activeContent?.parentId ? "Subroutine / " : "Root / "}`}</span><span className={`font-bold ${theme.colors.textHead} truncate text-sm md:text-base tracking-wide flex items-center gap-2`}>{viewMode === 'settings' ? "SETTINGS" : (activeContent?.title.toUpperCase() || "UNKNOWN")}</span></div>
+                            </div>
+                            <div className={`flex items-center gap-2 text-xs font-mono ${theme.colors.textDim} border ${theme.colors.borderDim} px-3 py-1 ${theme.colors.bgSurface}`} style={{clipPath: SHAPES?.bevelBtn}}><Shield size={12} className={theme.colors.secondary}/> SECURE</div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto relative scrollbar-thin">
+                            <div className="max-w-7xl mx-auto p-6 md:p-12 pb-32 animate-in slide-in-from-bottom-4 duration-500 flex flex-col xl:flex-row gap-8">
+                                
+                                {viewMode === 'settings' ? (
+                                    <div className="w-full max-w-3xl">
+                                        <CyberCard theme={theme}><SettingsView currentThemeId={currentThemeId} setThemeId={setCurrentThemeId} theme={theme} /></CyberCard>
+                                    </div>
+                                ) : (
+                                    <>
+                                        {/* MAIN CONTENT COLUMN */}
+                                        <div className="flex-1 min-w-0">
+                                            {/* INFOBOX - Mobile/Tablet: Inline at top */}
+                                            <div className="xl:hidden mb-8">
+                                                <InfoBox data={activeContent?.infobox} theme={theme} />
+                                            </div>
+
+                                            <CyberCard theme={theme}>
+                                                <div className="prose prose-invert max-w-none">
+                                                    {/* INFOBOX - Desktop: Floated inside content via Render? No, React structure is better */}
+                                                    <div className="hidden xl:block float-right ml-8 mb-8 clear-right">
+                                                        <InfoBox data={activeContent?.infobox} theme={theme} />
+                                                    </div>
+                                                    
+                                                    {activeContent && activeContent.content ? renderMarkdown(activeContent.content) : 
+                                                        <div className={`flex flex-col items-center justify-center p-12 ${theme.colors.textDim}`}>
+                                                            <Folder size={48} className="mb-4 opacity-50"/><span className="font-mono text-sm">SELECT A DATA FILE</span>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </CyberCard>
+                                            
+                                            <div className="mt-16 pt-8 flex items-center justify-center gap-4 opacity-50">
+                                                <div className={`h-px w-12 ${theme.colors.primaryBg}`}></div>
+                                                <span className={`${theme.colors.primary} font-mono text-[10px] tracking-[0.5em]`}>END OF FILE</span>
+                                                <div className={`h-px w-12 ${theme.colors.primaryBg}`}></div>
+                                            </div>
+                                        </div>
+
+                                        {/* TOC COLUMN (Desktop Only) */}
+                                        <TableOfContents headers={headers} theme={theme} />
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            );
+        }
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

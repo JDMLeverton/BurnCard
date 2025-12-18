@@ -1,0 +1,18 @@
+/* --- GLOBAL STYLES --- */
+body { 
+    font-family: 'Chakra Petch', sans-serif; 
+    background-color: #020617; 
+    color: #e2e8f0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+pre, code, .font-mono { 
+    font-family: 'JetBrains Mono', monospace; 
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #020617; }
+::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 2px; }
