@@ -12,6 +12,7 @@ import * as AISociety from './81_ai_society.js';
 import * as Surveillance from './83_surveillance.js';
 import * as Demographics from './84_demographics.js';
 import * as USAWiki from './86_usa_wiki.js';
+import * as Corporations from './87_corporations.js';
 export const DATABASE_REGISTRY = {
     // ... (Keep existing Home and Rules sections) ...
     "root_home": {
@@ -77,7 +78,14 @@ export const DATABASE_REGISTRY = {
                 title: USAWiki.title, 
                 icon: USAWiki.icon, 
                 content: USAWiki.content,
-                // PASS THE INFOBOX DATA
                 infobox: USAWiki.infobox 
+            },
+            "corporations": { 
+                id: "corporations", 
+                parentId: "root_world", 
+                title: Corporations.title, 
+                icon: Corporations.icon, 
+                content: Corporations.content,
+                infobox: Corporations.infobox 
             }
 };

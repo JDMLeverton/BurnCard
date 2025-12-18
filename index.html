@@ -20,9 +20,7 @@
         import React, { useState, useEffect, useMemo } from 'https://esm.sh/react@18.2.0';
         import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client';
         import { 
-            Terminal, BookOpen, Cpu, Zap, Layout, Menu, X, ChevronRight, ChevronDown,
-            FileText, Folder, Shield, Image as ImageIcon, Wifi, Layers, User, Hexagon, 
-            Activity, Package, Settings, CheckCircle, Globe, MapPin, Flag, Users, Landmark
+            Terminal, BookOpen, Cpu, Zap, Layout, Menu, X, ChevronRight, ChevronDown, FileText, Folder, Shield, Image as ImageIcon, Wifi, Layers, User, Hexagon, Activity, Package, Settings, CheckCircle, Globe, MapPin, Flag, Users, Landmark, Briefcase
         } from 'https://esm.sh/lucide-react@0.292.0';
 
         import { DATABASE_REGISTRY } from './data/registry.js';
@@ -219,7 +217,7 @@
                 const hasChildren = children.length > 0;
                 
                 const getIcon = (name) => {
-                    const icons = { Terminal, BookOpen, Cpu, Zap, Layout, FileText, Folder, Shield, Wifi, Layers, User, Activity, Package, Hexagon, Globe, MapPin, Flag, Users, Landmark };
+                    const icons = { Terminal, BookOpen, Cpu, Zap, Layout, FileText, Folder, Shield, Wifi, Layers, User, Activity, Package, Hexagon, Globe, MapPin, Flag, Users, Landmark, Briefcase };
                     return icons[name] || Terminal;
                 };
                 const TheIcon = getIcon(item.icon);
